@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Free AI Background Remover | World Watcher</title>
-<meta name="description" content="Remove image backgrounds free with this browser-based AI background remover. Download transparent PNG images.">
+<meta name="description" content="Remove image backgrounds free with our browser-based AI background remover. Download transparent PNG images.">
 
 <style>
 *{box-sizing:border-box}
@@ -19,38 +19,44 @@ body{
 .container{
   max-width:850px;
   margin:auto;
-  background:white;
   padding:25px;
+  background:white;
   border-radius:14px;
   box-shadow:0 3px 18px rgba(0,0,0,.08);
 }
-h1{text-align:center;color:#23734d;font-size:27px}
-.intro{text-align:center;color:#666;line-height:1.6}
-.upload{
-  display:block;
-  margin:25px auto;
-  padding:18px;
-  width:100%;
+h1{text-align:center;color:#23734d}
+.intro{text-align:center;line-height:1.6;color:#666}
+.upload-area{
+  margin:25px 0;
+  padding:25px 15px;
+  text-align:center;
   border:2px dashed #70a88b;
   border-radius:10px;
-  text-align:center;
-  cursor:pointer;
   background:#f8fcf9;
 }
-input[type=file]{max-width:100%}
+#fileInput{display:none}
 button{
-  border:0;
   padding:13px 22px;
+  margin:6px;
+  border:0;
   border-radius:7px;
   background:#287b50;
   color:white;
   font-size:15px;
   cursor:pointer;
-  margin:6px;
 }
-button:disabled{opacity:.5;cursor:not-allowed}
+button:disabled{
+  background:#aaa;
+  cursor:not-allowed;
+}
 .buttons{text-align:center}
-#status{text-align:center;margin:18px 0;color:#287b50;font-weight:bold}
+#status{
+  text-align:center;
+  margin:20px 0;
+  color:#287b50;
+  font-weight:bold;
+  overflow-wrap:anywhere;
+}
 .preview{
   display:grid;
   grid-template-columns:1fr 1fr;
@@ -59,12 +65,13 @@ button:disabled{opacity:.5;cursor:not-allowed}
 }
 .preview-box{
   min-width:0;
-  text-align:center;
+  padding:12px;
   border:1px solid #ddd;
   border-radius:10px;
-  padding:12px;
+  text-align:center;
 }
 .preview-box img{
+  display:block;
   width:100%;
   max-height:350px;
   object-fit:contain;
@@ -86,129 +93,168 @@ button:disabled{opacity:.5;cursor:not-allowed}
 
 <body>
 <div class="container">
-  <h1>Free AI Background Remover</h1>
-  <p class="intro">Remove image backgrounds online for free. Upload your photo and download a transparent PNG.</p>
 
-  <label class="upload">
-    <strong>Select Your Image</strong><br><br>
-    <input type="file" id="fileInput" accept="image/*">
-  </label>
+<h1>Free AI Background Remover</h1>
+<p class="intro">
+Remove image backgrounds with AI and download transparent PNG images.
+</p>
 
-  <div class="buttons">
-    <button id="removeBtn" disabled>Remove Background</button>
-    <button id="downloadBtn" disabled>Download PNG</button>
+<div class="upload-area">
+  <p><strong>Select Your Image</strong></p>
+  <input type="file" id="fileInput" accept="image/*">
+  <button type="button" id="chooseBtn">Choose Image</button>
+  <p id="fileName">No image selected</p>
+</div>
+
+<div class="buttons">
+  <button type="button" id="removeBtn" disabled>
+    Remove Background
+  </button>
+  <button type="button" id="downloadBtn" disabled>
+    Download PNG
+  </button>
+</div>
+
+<div id="status">Please select an image to get started.</div>
+
+<div class="preview">
+  <div class="preview-box">
+    <h3>Original Image</h3>
+    <img id="originalPreview" alt="Original image preview">
   </div>
 
-  <div id="status">Please select an image to begin.</div>
-
-  <div class="preview">
-    <div class="preview-box">
-      <h3>Original Image</h3>
-      <img id="originalPreview" alt="Original image preview">
-    </div>
-    <div class="preview-box">
-      <h3>Background Removed</h3>
-      <img id="resultPreview" alt="Background removed image preview">
-    </div>
+  <div class="preview-box">
+    <h3>Background Removed</h3>
+    <img id="resultPreview" alt="Background removed preview">
   </div>
 </div>
 
-<script type="module">
-import { pipeline } from "https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2";
+</div>
 
+<script>
 const fileInput = document.getElementById("fileInput");
+const chooseBtn = document.getElementById("chooseBtn");
 const removeBtn = document.getElementById("removeBtn");
 const downloadBtn = document.getElementById("downloadBtn");
 const statusText = document.getElementById("status");
+const fileName = document.getElementById("fileName");
 const originalPreview = document.getElementById("originalPreview");
 const resultPreview = document.getElementById("resultPreview");
 
-let originalFile = null;
-let resultUrl = null;
+let selectedFile = null;
+let originalURL = null;
+let resultURL = null;
 let remover = null;
+let isProcessing = false;
 
-fileInput.addEventListener("change", () => {
-  const file = fileInput.files?.[0];
-  if (!file) return;
+chooseBtn.addEventListener("click", function(){
+  fileInput.click();
+});
 
-  if (!file.type.startsWith("image/")) {
+fileInput.addEventListener("change", function(){
+  const file = fileInput.files && fileInput.files[0];
+
+  if(!file) return;
+
+  if(!file.type.startsWith("image/")){
     statusText.textContent = "Please select a valid image.";
     return;
   }
 
-  originalFile = file;
-  originalPreview.src = URL.createObjectURL(file);
+  selectedFile = file;
+
+  if(originalURL) URL.revokeObjectURL(originalURL);
+  if(resultURL) URL.revokeObjectURL(resultURL);
+
+  originalURL = URL.createObjectURL(file);
+  resultURL = null;
+
+  originalPreview.src = originalURL;
   resultPreview.removeAttribute("src");
 
-  if (resultUrl) URL.revokeObjectURL(resultUrl);
-  resultUrl = null;
-
+  fileName.textContent = file.name;
   removeBtn.disabled = false;
   downloadBtn.disabled = true;
-  statusText.textContent = "Image uploaded. Click Remove Background.";
+
+  statusText.textContent = "Image selected. Click Remove Background.";
 });
 
-removeBtn.addEventListener("click", async () => {
-  if (!originalFile) return;
+removeBtn.addEventListener("click", async function(){
 
+  if(!selectedFile || isProcessing) return;
+
+  isProcessing = true;
   removeBtn.disabled = true;
+  chooseBtn.disabled = true;
   downloadBtn.disabled = true;
 
-  try {
+  try{
+
     statusText.textContent = "Loading AI model. First use may take a few minutes...";
 
-    if (!remover) {
-      remover = await pipeline(
+    if(!remover){
+
+      const transformers = await import(
+        "https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1"
+      );
+
+      remover = await transformers.pipeline(
         "background-removal",
         "Xenova/modnet",
-        { quantized: true }
+        { dtype: "fp32" }
       );
     }
 
     statusText.textContent = "Removing background. Please wait...";
 
-    const imageUrl = URL.createObjectURL(originalFile);
+    const output = await remover(originalURL);
 
-    try {
-      const output = await remover(imageUrl);
-
-      if (!output || !output[0] || !output[0].url) {
-        throw new Error("AI did not return a valid transparent image.");
-      }
-
-      const response = await fetch(output[0].url);
-      if (!response.ok) throw new Error("Could not create the result image.");
-
-      const blob = await response.blob();
-
-      if (resultUrl) URL.revokeObjectURL(resultUrl);
-      resultUrl = URL.createObjectURL(blob);
-
-      resultPreview.src = resultUrl;
-      downloadBtn.disabled = false;
-      statusText.textContent = "Background removed successfully!";
-    } finally {
-      URL.revokeObjectURL(imageUrl);
+    if(!output || !output[0] || typeof output[0].toBlob !== "function"){
+      throw new Error("AI did not return a valid image.");
     }
 
-  } catch (error) {
+    const blob = await output[0].toBlob();
+
+    if(!blob || blob.size === 0){
+      throw new Error("The result image is empty.");
+    }
+
+    if(resultURL) URL.revokeObjectURL(resultURL);
+
+    resultURL = URL.createObjectURL(blob);
+    resultPreview.src = resultURL;
+
+    downloadBtn.disabled = false;
+    statusText.textContent = "Background removed successfully!";
+
+  }catch(error){
+
     console.error(error);
-    statusText.textContent = "Sorry, background removal failed. Please try a smaller image.";
-  } finally {
-    removeBtn.disabled = false;
+    statusText.textContent =
+      "Error: " + (error.message || "Please try again with another image.");
+
+  }finally{
+
+    isProcessing = false;
+    removeBtn.disabled = !selectedFile;
+    chooseBtn.disabled = false;
+
   }
 });
 
-downloadBtn.addEventListener("click", () => {
-  if (!resultUrl) return;
+downloadBtn.addEventListener("click", function(){
+
+  if(!resultURL) return;
 
   const link = document.createElement("a");
-  link.href = resultUrl;
+  link.href = resultURL;
   link.download = "background-removed.png";
   document.body.appendChild(link);
   link.click();
   link.remove();
+
 });
 </script>
+
 </body>
 </html>
