@@ -4,127 +4,66 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
 <title>Free AI Background Remover | World Watcher</title>
 <meta name="description" content="Remove photo backgrounds free with our browser-based AI background remover. Download transparent PNG images.">
 
 <style>
 *{box-sizing:border-box}
-
 body{
-  margin:0;
-  padding:20px 15px;
-  font-family:Arial,sans-serif;
-  background:#f4f7f6;
-  color:#222;
+ margin:0;padding:20px 15px;
+ font-family:Arial,sans-serif;
+ background:#f4f7f6;color:#222;
 }
-
 .container{
-  max-width:760px;
-  margin:25px auto;
-  padding:28px;
-  background:white;
-  border-radius:14px;
-  box-shadow:0 4px 20px rgba(0,0,0,.07);
+ max-width:760px;margin:25px auto;padding:28px;
+ background:white;border-radius:14px;
+ box-shadow:0 4px 20px rgba(0,0,0,.07);
 }
-
-h1{
-  text-align:center;
-  color:#176b55;
-  margin-top:0;
-}
-
-.intro{
-  text-align:center;
-  color:#666;
-  line-height:1.6;
-}
-
+h1{text-align:center;color:#176b55}
+.intro{text-align:center;color:#666;line-height:1.6}
 .upload-box{
-  margin:25px 0;
-  padding:30px 15px;
-  border:2px dashed #299879;
-  border-radius:12px;
-  text-align:center;
-  background:#f8fffc;
+ margin:25px 0;padding:30px 15px;
+ border:2px dashed #299879;border-radius:12px;
+ text-align:center;background:#f8fffc;
 }
-
-input[type=file]{
-  max-width:100%;
-  margin-top:15px;
-}
-
-.buttons{
-  text-align:center;
-}
-
+input[type=file]{max-width:100%;margin-top:15px}
+.buttons{text-align:center}
 button{
-  border:0;
-  border-radius:7px;
-  padding:13px 22px;
-  background:#168365;
-  color:white;
-  font-size:15px;
-  cursor:pointer;
-  margin:8px 4px;
+ border:0;border-radius:7px;padding:13px 22px;
+ background:#168365;color:white;font-size:15px;
+ cursor:pointer;margin:8px 4px;
 }
-
-button:disabled{
-  opacity:.5;
-  cursor:not-allowed;
-}
-
-#downloadBtn{
-  background:#245fc1;
-}
-
+button:disabled{opacity:.5;cursor:not-allowed}
+#downloadBtn{background:#245fc1}
 #status{
-  margin:18px 0;
-  text-align:center;
-  line-height:1.6;
-  color:#176b55;
-  font-size:14px;
-  overflow-wrap:anywhere;
+ margin:18px 0;text-align:center;
+ line-height:1.6;color:#176b55;
+ font-size:14px;overflow-wrap:anywhere;
 }
-
-.preview{
-  display:none;
-  margin-top:25px;
-  text-align:center;
-}
-
+.preview{display:none;margin-top:25px;text-align:center}
 .preview img{
-  max-width:100%;
-  max-height:450px;
-  object-fit:contain;
-  border:1px solid #ddd;
-  border-radius:8px;
+ max-width:100%;max-height:450px;
+ object-fit:contain;border:1px solid #ddd;
+ border-radius:8px;
 }
-
 #resultImage{
-  background-color:white;
-  background-image:
-    linear-gradient(45deg,#ddd 25%,transparent 25%),
-    linear-gradient(-45deg,#ddd 25%,transparent 25%),
-    linear-gradient(45deg,transparent 75%,#ddd 75%),
-    linear-gradient(-45deg,transparent 75%,#ddd 75%);
-  background-size:20px 20px;
-  background-position:0 0,0 10px,10px -10px,-10px 0;
+ background-color:white;
+ background-image:
+ linear-gradient(45deg,#ddd 25%,transparent 25%),
+ linear-gradient(-45deg,#ddd 25%,transparent 25%),
+ linear-gradient(45deg,transparent 75%,#ddd 75%),
+ linear-gradient(-45deg,transparent 75%,#ddd 75%);
+ background-size:20px 20px;
+ background-position:0 0,0 10px,10px -10px,-10px 0;
 }
-
 .note{
-  margin-top:20px;
-  color:#777;
-  font-size:13px;
-  line-height:1.6;
-  text-align:center;
+ margin-top:20px;color:#777;font-size:13px;
+ line-height:1.6;text-align:center;
 }
-
 </style>
 </head>
 
 <body>
-
 <div class="container">
 
 <h1>Free AI Background Remover</h1>
@@ -157,243 +96,173 @@ Upload an image and download your transparent PNG.
 </div>
 
 <p class="note">
-Your photo is processed in your browser. The first AI model download
-may take some time. Please keep this page open during processing.
+Your photo is processed in your browser.
+The first AI model download may take some time.
+Please keep this page open during processing.
 </p>
 
 </div>
 
 <script type="module">
 
-import {
-  pipeline,
-  RawImage
-} from "https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1";
+import { pipeline, RawImage } from
+"https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1";
 
 const fileInput = document.getElementById("fileInput");
 const removeBtn = document.getElementById("removeBtn");
 const downloadBtn = document.getElementById("downloadBtn");
-
 const statusBox = document.getElementById("status");
 
 const originalPreview = document.getElementById("originalPreview");
 const originalImage = document.getElementById("originalImage");
-
 const resultPreview = document.getElementById("resultPreview");
 const resultImage = document.getElementById("resultImage");
 
 let selectedFile = null;
-let segmenter = null;
-let resultUrl = null;
 let originalUrl = null;
+let resultUrl = null;
+let remover = null;
 
-function showStatus(message){
-  statusBox.textContent = message;
+function status(message){
+ statusBox.textContent = message;
 }
 
 fileInput.addEventListener("change",()=>{
 
-  selectedFile = fileInput.files[0] || null;
+ selectedFile = fileInput.files[0] || null;
 
-  removeBtn.disabled = !selectedFile;
-  downloadBtn.disabled = true;
+ removeBtn.disabled = !selectedFile;
+ downloadBtn.disabled = true;
 
-  resultPreview.style.display = "none";
+ resultPreview.style.display = "none";
 
-  if(resultUrl){
-    URL.revokeObjectURL(resultUrl);
-    resultUrl = null;
-  }
+ if(originalUrl) URL.revokeObjectURL(originalUrl);
+ if(resultUrl) URL.revokeObjectURL(resultUrl);
 
-  if(originalUrl){
-    URL.revokeObjectURL(originalUrl);
-    originalUrl = null;
-  }
+ originalUrl = null;
+ resultUrl = null;
 
-  if(selectedFile){
+ if(selectedFile){
 
-    originalUrl = URL.createObjectURL(selectedFile);
+  originalUrl = URL.createObjectURL(selectedFile);
+  originalImage.src = originalUrl;
+  originalPreview.style.display = "block";
 
-    originalImage.src = originalUrl;
-    originalPreview.style.display = "block";
+  status("Image selected. Click Remove Background.");
 
-    showStatus("Image selected. Click Remove Background.");
+ }else{
 
-  }else{
+  originalPreview.style.display = "none";
+  status("Please select an image.");
 
-    originalPreview.style.display = "none";
-    showStatus("Please select an image.");
-
-  }
+ }
 
 });
 
-async function loadModel(){
+async function loadAI(){
 
-  if(segmenter) return;
+ if(remover) return;
 
-  showStatus("Loading AI model. Please wait...");
+ status("Loading AI model. Please wait...");
 
-  segmenter = await pipeline(
-    "background-removal",
-    "Xenova/modnet",
-    {
-      device:"wasm"
-    }
-  );
+ remover = await pipeline(
+  "background-removal",
+  "Xenova/modnet",
+  {
+   dtype:"fp32",
+   device:"wasm"
+  }
+ );
 
 }
 
 removeBtn.addEventListener("click",async()=>{
 
-  if(!selectedFile) return;
+ if(!selectedFile) return;
 
-  removeBtn.disabled = true;
-  downloadBtn.disabled = true;
+ removeBtn.disabled = true;
+ downloadBtn.disabled = true;
 
-  let inputUrl = null;
+ let inputUrl = null;
 
-  try{
+ try{
 
-    await loadModel();
+  await loadAI();
 
-    showStatus("Preparing your image...");
+  status("Preparing your photo...");
 
-    inputUrl = URL.createObjectURL(selectedFile);
+  inputUrl = URL.createObjectURL(selectedFile);
 
-    const image = await RawImage.read(inputUrl);
+  const image = await RawImage.read(inputUrl);
 
-    showStatus("AI is removing the background. Please wait...");
+  status("AI is removing the background. Please wait...");
 
-    const output = await segmenter(image);
+  const output = await remover(image);
 
-    if(!output || !output[0] || !output[0].mask){
-      throw new Error("AI could not detect the subject. Please try another photo.");
-    }
-
-    const mask = output[0].mask;
-
-    if(!mask.data || !mask.width || !mask.height){
-      throw new Error("AI returned an invalid mask. Please try another image.");
-    }
-
-    const resizedMask = mask.resize(
-      image.width,
-      image.height
-    );
-
-    const maskData = resizedMask.data;
-    const channels = resizedMask.channels || 1;
-
-    const photo = new Image();
-
-    await new Promise((resolve,reject)=>{
-
-      photo.onload = resolve;
-
-      photo.onerror = ()=>{
-        reject(new Error("Could not load your original photo."));
-      };
-
-      photo.src = inputUrl;
-
-    });
-
-    const canvas = document.createElement("canvas");
-
-    canvas.width = image.width;
-    canvas.height = image.height;
-
-    const ctx = canvas.getContext("2d",{
-      willReadFrequently:true
-    });
-
-    ctx.drawImage(photo,0,0,canvas.width,canvas.height);
-
-    const imageData = ctx.getImageData(
-      0,0,canvas.width,canvas.height
-    );
-
-    const pixels = imageData.data;
-
-    for(let i=0;i<canvas.width*canvas.height;i++){
-
-      let alpha = maskData[i*channels];
-
-      if(alpha <= 1){
-        alpha = alpha*255;
-      }
-
-      pixels[i*4+3] = Math.max(
-        0,
-        Math.min(255,Math.round(alpha))
-      );
-
-    }
-
-    ctx.putImageData(imageData,0,0);
-
-    const blob = await new Promise(resolve=>{
-      canvas.toBlob(resolve,"image/png");
-    });
-
-    if(!blob){
-      throw new Error("Could not create transparent PNG.");
-    }
-
-    if(resultUrl){
-      URL.revokeObjectURL(resultUrl);
-    }
-
-    resultUrl = URL.createObjectURL(blob);
-
-    resultImage.src = resultUrl;
-
-    resultPreview.style.display = "block";
-
-    downloadBtn.disabled = false;
-
-    showStatus("Background removed successfully! Check your result.");
-
-  }catch(error){
-
-    console.error(error);
-
-    showStatus(
-      "Sorry, something went wrong: "+
-      (error.message || "Please try again.")
-    );
-
-  }finally{
-
-    if(inputUrl){
-      URL.revokeObjectURL(inputUrl);
-    }
-
-    removeBtn.disabled = !selectedFile;
-
+  if(!output || !output[0]){
+   throw new Error("AI did not return an image. Please try again.");
   }
+
+  const transparentImage = output[0];
+
+  if(!transparentImage.data ||
+     !transparentImage.width ||
+     !transparentImage.height){
+   throw new Error("AI returned an incomplete image.");
+  }
+
+  status("Preparing your transparent PNG...");
+
+  const blob = await transparentImage.toBlob();
+
+  if(!blob){
+   throw new Error("Could not create PNG file.");
+  }
+
+  if(resultUrl) URL.revokeObjectURL(resultUrl);
+
+  resultUrl = URL.createObjectURL(blob);
+
+  resultImage.src = resultUrl;
+  resultPreview.style.display = "block";
+
+  downloadBtn.disabled = false;
+
+  status("Background removed successfully! Your PNG is ready.");
+
+ }catch(error){
+
+  console.error(error);
+
+  status(
+   "Sorry, something went wrong: " +
+   (error.message || "Please try again.")
+  );
+
+ }finally{
+
+  if(inputUrl) URL.revokeObjectURL(inputUrl);
+
+  removeBtn.disabled = !selectedFile;
+
+ }
 
 });
 
 downloadBtn.addEventListener("click",()=>{
 
-  if(!resultUrl) return;
+ if(!resultUrl) return;
 
-  const link = document.createElement("a");
+ const link = document.createElement("a");
+ link.href = resultUrl;
+ link.download = "world-watcher-background-removed.png";
 
-  link.href = resultUrl;
-  link.download = "world-watcher-background-removed.png";
-
-  document.body.appendChild(link);
-
-  link.click();
-
-  link.remove();
+ document.body.appendChild(link);
+ link.click();
+ link.remove();
 
 });
 
 </script>
-
 </body>
 </html>
