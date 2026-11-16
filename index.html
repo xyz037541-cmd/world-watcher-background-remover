@@ -90,7 +90,7 @@ button:disabled{
   border:1px solid #ddd;
   border-radius:10px;
   overflow:hidden;
-  background-color:#eee;
+  background-color:#fff;
   background-image:
     linear-gradient(45deg,#ddd 25%,transparent 25%),
     linear-gradient(-45deg,#ddd 25%,transparent 25%),
@@ -129,7 +129,6 @@ Remove the background from your photos and download a transparent PNG.
 </p>
 
 <label class="upload-area" for="fileInput">
-
 <input type="file" id="fileInput"
 accept="image/jpeg,image/png,image/webp">
 
@@ -137,7 +136,6 @@ accept="image/jpeg,image/png,image/webp">
 <p><strong>Upload Your Image</strong></p>
 <p>Click here to choose a photo</p>
 <small>JPG, PNG or WEBP — maximum 10 MB</small>
-
 </label>
 
 <button id="removeBtn" disabled>
@@ -152,9 +150,7 @@ Download Transparent PNG
 Choose Another Image
 </button>
 
-<div id="status">
-Choose an image to get started.
-</div>
+<div id="status">Choose an image to get started.</div>
 
 <div class="preview" id="preview">
 <img id="resultImage" alt="Background removed image preview">
@@ -192,7 +188,8 @@ let model = null;
 let processor = null;
 let isProcessing = false;
 
-// Upload image and show preview
+
+// Upload image
 
 fileInput.addEventListener("change", () => {
 
@@ -231,7 +228,8 @@ fileInput.addEventListener("change", () => {
 
 });
 
-// Load model and remove background
+
+// Remove background
 
 removeBtn.addEventListener("click", async () => {
 
@@ -242,6 +240,8 @@ removeBtn.addEventListener("click", async () => {
   downloadBtn.disabled = true;
   fileInput.disabled = true;
 
+  let originalURL = null;
+
   try {
 
     if (!navigator.gpu) {
@@ -251,7 +251,7 @@ removeBtn.addEventListener("click", async () => {
     }
 
     statusBox.textContent =
-      "Loading BiRefNet AI model. First download is about 94 MB. Please wait...";
+      "Loading AI model. First download is about 94 MB. Please wait...";
 
     if (!model || !processor) {
 
@@ -269,8 +269,7 @@ removeBtn.addEventListener("click", async () => {
 
     }
 
-    statusBox.textContent =
-      "Preparing your image...";
+    statusBox.textContent = "Preparing your image...";
 
     const image = await RawImage.read(selectedFile);
 
@@ -293,7 +292,7 @@ removeBtn.addEventListener("click", async () => {
 
     const values = logits.data;
 
-    // Convert model output into a grayscale alpha mask
+    // Create improved transparency mask
 
     const maskCanvas = document.createElement("canvas");
 
@@ -307,12 +306,25 @@ removeBtn.addEventListener("click", async () => {
       maskHeight
     );
 
-    for (let i = 0; i < values.length; i++) {
+    for (let i = 0; i < maskWidth * maskHeight; i++) {
 
       const probability =
         1 / (1 + Math.exp(-values[i]));
 
-      const alpha = Math.round(probability * 255);
+      // Improve foreground opacity while keeping soft edges
+
+      const lower = 0.15;
+      const upper = 0.65;
+
+      let t = (probability - lower) / (upper - lower);
+
+      t = Math.max(0, Math.min(1, t));
+
+      // Smooth transition between subject and background
+
+      const smooth = t * t * (3 - 2 * t);
+
+      const alpha = Math.round(smooth * 255);
 
       const pixel = i * 4;
 
@@ -324,6 +336,7 @@ removeBtn.addEventListener("click", async () => {
     }
 
     maskContext.putImageData(maskImageData, 0, 0);
+
 
     // Resize mask to original image dimensions
 
@@ -345,9 +358,10 @@ removeBtn.addEventListener("click", async () => {
       originalHeight
     );
 
-    // Load original photo
 
-    const originalURL = URL.createObjectURL(selectedFile);
+    // Load original photo separately
+
+    originalURL = URL.createObjectURL(selectedFile);
 
     const originalImage = new Image();
 
@@ -360,14 +374,17 @@ removeBtn.addEventListener("click", async () => {
 
     });
 
-    // Apply alpha mask to original photo
+
+    // Draw original photo without changing its colours
 
     const finalCanvas = document.createElement("canvas");
 
     finalCanvas.width = originalWidth;
     finalCanvas.height = originalHeight;
 
-    const finalContext = finalCanvas.getContext("2d");
+    const finalContext = finalCanvas.getContext("2d", {
+      willReadFrequently: true
+    });
 
     finalContext.drawImage(
       originalImage,
@@ -391,15 +408,22 @@ removeBtn.addEventListener("click", async () => {
       originalHeight
     );
 
+
+    // Change ONLY alpha.
+    // Original red, green and blue colour values remain untouched.
+
     for (let i = 0; i < imageData.data.length; i += 4) {
 
-      imageData.data[i + 3] = maskData.data[i + 3];
+      const originalAlpha = imageData.data[i + 3];
+      const maskAlpha = maskData.data[i + 3];
+
+      imageData.data[i + 3] =
+        Math.round(originalAlpha * maskAlpha / 255);
 
     }
 
     finalContext.putImageData(imageData, 0, 0);
 
-    URL.revokeObjectURL(originalURL);
 
     // Create transparent PNG
 
@@ -424,7 +448,7 @@ removeBtn.addEventListener("click", async () => {
     downloadBtn.disabled = false;
 
     statusBox.textContent =
-      "Background removed successfully!";
+      "Background removed successfully! Download your PNG.";
 
   } catch (error) {
 
@@ -436,6 +460,10 @@ removeBtn.addEventListener("click", async () => {
 
   } finally {
 
+    if (originalURL) {
+      URL.revokeObjectURL(originalURL);
+    }
+
     isProcessing = false;
     fileInput.disabled = false;
     removeBtn.disabled = !selectedFile;
@@ -443,6 +471,7 @@ removeBtn.addEventListener("click", async () => {
   }
 
 });
+
 
 // Download PNG
 
@@ -460,6 +489,7 @@ downloadBtn.addEventListener("click", () => {
   link.remove();
 
 });
+
 
 // Reset
 
