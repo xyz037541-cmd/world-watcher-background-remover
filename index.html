@@ -4,104 +4,78 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
 <title>Free AI Background Remover | World Watcher</title>
-<meta name="description" content="Remove photo backgrounds free with our browser-based AI background remover. Download transparent PNG images.">
+<meta name="description" content="Remove image backgrounds free with an AI background remover. Download transparent PNG images.">
 
 <style>
 *{box-sizing:border-box}
-
 body{
   margin:0;
-  padding:20px 15px;
+  padding:25px 15px;
   font-family:Arial,sans-serif;
-  background:#f4f7f6;
+  background:#f4f6f8;
   color:#222;
 }
-
 .container{
   max-width:760px;
   margin:25px auto;
-  padding:28px;
-  background:white;
+  padding:25px;
+  background:#fff;
   border-radius:14px;
-  box-shadow:0 4px 20px rgba(0,0,0,.07);
+  box-shadow:0 3px 18px rgba(0,0,0,.08);
 }
-
-h1{
+h1{text-align:center;font-size:27px;margin:5px 0 10px}
+.intro{text-align:center;color:#666;line-height:1.6}
+.upload{
+  display:block;
+  margin:25px auto 15px;
+  padding:18px;
+  width:100%;
+  border:2px dashed #9aa5b1;
+  border-radius:10px;
   text-align:center;
-  color:#176b55;
+  cursor:pointer;
+  background:#fafafa;
 }
-
-.intro{
-  text-align:center;
-  color:#666;
-  line-height:1.6;
-}
-
-.upload-box{
-  margin:25px 0;
-  padding:30px 15px;
-  border:2px dashed #299879;
-  border-radius:12px;
-  text-align:center;
-  background:#f8fffc;
-}
-
-input[type=file]{
-  max-width:100%;
-  margin-top:15px;
-}
-
-.buttons{
-  text-align:center;
-}
-
+.upload input{max-width:100%;margin-top:12px}
 button{
   border:0;
-  border-radius:7px;
-  padding:13px 22px;
-  background:#168365;
-  color:white;
+  border-radius:8px;
+  padding:13px 20px;
   font-size:15px;
   cursor:pointer;
-  margin:8px 4px;
+  margin:7px 4px;
+  background:#176b55;
+  color:white;
 }
-
-button:disabled{
-  opacity:.5;
-  cursor:not-allowed;
-}
-
-#downloadBtn{
-  background:#245fc1;
-}
-
+button:disabled{opacity:.5;cursor:not-allowed}
+.actions{text-align:center;margin:15px 0}
 #status{
-  margin:18px 0;
   text-align:center;
-  line-height:1.6;
-  color:#176b55;
-  font-size:14px;
-  overflow-wrap:anywhere;
+  color:#444;
+  min-height:25px;
+  line-height:1.5;
+  margin:15px 0;
 }
-
 .preview{
-  display:none;
-  margin-top:25px;
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:15px;
+  margin-top:20px;
+}
+.preview-box{
+  min-width:0;
   text-align:center;
 }
-
-.preview img{
-  max-width:100%;
-  max-height:450px;
+.preview-box h3{font-size:15px}
+.preview-box img{
+  display:block;
+  width:100%;
+  max-height:380px;
   object-fit:contain;
   border:1px solid #ddd;
   border-radius:8px;
-}
-
-#resultImage{
-  background-color:white;
+  background-color:#eee;
   background-image:
     linear-gradient(45deg,#ddd 25%,transparent 25%),
     linear-gradient(-45deg,#ddd 25%,transparent 25%),
@@ -110,183 +84,275 @@ button:disabled{
   background-size:20px 20px;
   background-position:0 0,0 10px,10px -10px,-10px 0;
 }
-
 .note{
-  margin-top:20px;
-  color:#777;
   font-size:13px;
+  color:#777;
   line-height:1.6;
   text-align:center;
+  margin-top:22px;
+}
+@media(max-width:550px){
+  .container{padding:17px}
+  .preview{grid-template-columns:1fr}
+  h1{font-size:23px}
 }
 </style>
 </head>
 
 <body>
-
 <div class="container">
 
 <h1>Free AI Background Remover</h1>
-
 <p class="intro">
-Remove the background from your photos for free.
-Upload an image and download your transparent PNG.
+Remove image backgrounds with AI and download transparent PNG images.
 </p>
 
-<div class="upload-box">
+<label class="upload">
 <strong>Select Your Image</strong><br>
-<input type="file" id="fileInput" accept="image/png,image/jpeg,image/webp">
-</div>
+<input type="file" id="fileInput" accept="image/*">
+</label>
 
-<div class="buttons">
+<div class="actions">
 <button id="removeBtn" disabled>Remove Background</button>
 <button id="downloadBtn" disabled>Download PNG</button>
 </div>
 
-<div id="status">Please select an image to begin.</div>
+<div id="status">Please select an image to get started.</div>
 
-<div class="preview" id="originalPreview">
-<h3>Original Image</h3>
-<img id="originalImage" alt="Original uploaded photo">
-</div>
+<div class="preview">
+  <div class="preview-box">
+    <h3>Original Image</h3>
+    <img id="originalPreview" alt="Original image preview">
+  </div>
 
-<div class="preview" id="resultPreview">
-<h3>Background Removed</h3>
-<img id="resultImage" alt="Background removed photo">
+  <div class="preview-box">
+    <h3>Background Removed</h3>
+    <img id="resultPreview" alt="Background removed preview">
+  </div>
 </div>
 
 <p class="note">
-Your photo is processed in your browser.
-The first AI model download may take some time.
-Please keep this page open during processing.
+Your image is processed in your browser. The first AI model download may take some time.
 </p>
 
 </div>
 
 <script type="module">
+import {
+  AutoModel,
+  AutoProcessor,
+  RawImage
+} from "https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1";
 
-import { pipeline } from
-"https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1";
+const MODEL_ID = "vlad-grig/birefnet-lite-512";
 
 const fileInput = document.getElementById("fileInput");
 const removeBtn = document.getElementById("removeBtn");
 const downloadBtn = document.getElementById("downloadBtn");
-
 const statusBox = document.getElementById("status");
-
 const originalPreview = document.getElementById("originalPreview");
-const originalImage = document.getElementById("originalImage");
-
 const resultPreview = document.getElementById("resultPreview");
-const resultImage = document.getElementById("resultImage");
 
 let selectedFile = null;
-let originalUrl = null;
+let originalImage = null;
 let resultUrl = null;
-let remover = null;
+let model = null;
+let processor = null;
+let modelLoading = null;
 
-function showStatus(message){
+function setStatus(message){
   statusBox.textContent = message;
 }
 
-fileInput.addEventListener("change",()=>{
-
-  selectedFile = fileInput.files[0] || null;
-
-  removeBtn.disabled = !selectedFile;
-  downloadBtn.disabled = true;
-
-  resultPreview.style.display = "none";
-
-  if(originalUrl){
-    URL.revokeObjectURL(originalUrl);
-    originalUrl = null;
+function loadAI(){
+  if(model && processor){
+    return Promise.resolve();
   }
+
+  if(modelLoading){
+    return modelLoading;
+  }
+
+  modelLoading = (async()=>{
+    setStatus("Loading AI model... Please wait. First download can take time.");
+
+    model = await AutoModel.from_pretrained(MODEL_ID,{
+      dtype:"fp32",
+      device:"wasm"
+    });
+
+    processor = await AutoProcessor.from_pretrained(MODEL_ID);
+
+    setStatus("AI model is ready.");
+  })();
+
+  try{
+    return await modelLoading;
+  }catch(error){
+    model = null;
+    processor = null;
+    modelLoading = null;
+    throw error;
+  }
+}
+
+fileInput.addEventListener("change",()=>{
+  const file = fileInput.files[0];
+
+  if(!file) return;
+
+  if(!file.type.startsWith("image/")){
+    setStatus("Please select a valid image.");
+    return;
+  }
+
+  selectedFile = file;
+
+  if(originalImage){
+    URL.revokeObjectURL(originalImage);
+  }
+
+  originalImage = URL.createObjectURL(file);
+  originalPreview.src = originalImage;
+
+  resultPreview.removeAttribute("src");
 
   if(resultUrl){
     URL.revokeObjectURL(resultUrl);
     resultUrl = null;
   }
 
-  if(selectedFile){
+  removeBtn.disabled = false;
+  downloadBtn.disabled = true;
 
-    originalUrl = URL.createObjectURL(selectedFile);
-
-    originalImage.src = originalUrl;
-    originalPreview.style.display = "block";
-
-    showStatus("Image selected. Click Remove Background.");
-
-  }else{
-
-    originalPreview.style.display = "none";
-    showStatus("Please select an image.");
-
-  }
-
+  setStatus("Image selected. Click Remove Background.");
 });
 
-async function loadModel(){
-
-  if(remover) return;
-
-  showStatus("Loading AI model. Please wait...");
-
-  remover = await pipeline(
-    "background-removal",
-    "Xenova/modnet",
-    {
-      dtype:"fp32",
-      device:"wasm"
-    }
-  );
-
-}
-
 removeBtn.addEventListener("click",async()=>{
-
   if(!selectedFile) return;
 
   removeBtn.disabled = true;
   downloadBtn.disabled = true;
 
-  let inputUrl = null;
-
   try{
+    setStatus("Preparing AI model...");
 
-    await loadModel();
+    await loadAI();
 
-    showStatus("Preparing your photo...");
+    setStatus("Reading your image...");
 
-    inputUrl = URL.createObjectURL(selectedFile);
+    const image = await RawImage.read(originalImage);
+    const {pixel_values} = await processor(image);
 
-    showStatus("AI is removing the background. Please wait...");
+    setStatus("AI is detecting the subject. Please wait...");
 
-    const output = await remover(inputUrl);
+    const {logits} = await model({
+      input_image:pixel_values
+    });
 
-    // MODNet can return one RawImage or an array of RawImages.
-    const transparentImage = Array.isArray(output)
-      ? output[0]
-      : output;
-
-    if(!transparentImage){
-      throw new Error("The AI did not return an image.");
+    if(!logits || !logits.dims || !logits.data){
+      throw new Error("AI did not return a valid mask.");
     }
+
+    const dims = logits.dims;
+    const maskHeight = dims[dims.length-2];
+    const maskWidth = dims[dims.length-1];
+    const maskData = logits.data;
 
     if(
-      !transparentImage.data ||
-      !transparentImage.width ||
-      !transparentImage.height ||
-      typeof transparentImage.toBlob !== "function"
+      !maskWidth ||
+      !maskHeight ||
+      maskData.length < maskWidth*maskHeight
     ){
-      throw new Error("The AI returned an incomplete image.");
+      throw new Error("AI mask data is incomplete.");
     }
 
-    showStatus("Preparing your transparent PNG...");
+    setStatus("Refining image edges...");
 
-    const blob = await transparentImage.toBlob();
+    const maskCanvas = document.createElement("canvas");
+    maskCanvas.width = maskWidth;
+    maskCanvas.height = maskHeight;
+
+    const maskCtx = maskCanvas.getContext("2d");
+    const maskImageData = maskCtx.createImageData(
+      maskWidth,
+      maskHeight
+    );
+
+    for(let i=0;i<maskWidth*maskHeight;i++){
+      const probability = 1/(1+Math.exp(-maskData[i]));
+      const alpha = Math.round(
+        Math.max(0,Math.min(1,probability))*255
+      );
+
+      const p = i*4;
+      maskImageData.data[p] = 255;
+      maskImageData.data[p+1] = 255;
+      maskImageData.data[p+2] = 255;
+      maskImageData.data[p+3] = alpha;
+    }
+
+    maskCtx.putImageData(maskImageData,0,0);
+
+    const bitmap = await createImageBitmap(selectedFile);
+
+    const outputCanvas = document.createElement("canvas");
+    outputCanvas.width = bitmap.width;
+    outputCanvas.height = bitmap.height;
+
+    const outputCtx = outputCanvas.getContext("2d",{
+      willReadFrequently:true
+    });
+
+    outputCtx.drawImage(
+      bitmap,
+      0,0,
+      outputCanvas.width,
+      outputCanvas.height
+    );
+
+    const fullMaskCanvas = document.createElement("canvas");
+    fullMaskCanvas.width = bitmap.width;
+    fullMaskCanvas.height = bitmap.height;
+
+    const fullMaskCtx = fullMaskCanvas.getContext("2d");
+
+    fullMaskCtx.imageSmoothingEnabled = true;
+    fullMaskCtx.imageSmoothingQuality = "high";
+
+    fullMaskCtx.drawImage(
+      maskCanvas,
+      0,0,
+      bitmap.width,
+      bitmap.height
+    );
+
+    const fullMask = fullMaskCtx.getImageData(
+      0,0,
+      bitmap.width,
+      bitmap.height
+    );
+
+    const output = outputCtx.getImageData(
+      0,0,
+      bitmap.width,
+      bitmap.height
+    );
+
+    for(let i=0;i<output.data.length;i+=4){
+      output.data[i+3] = fullMask.data[i+3];
+    }
+
+    outputCtx.putImageData(output,0,0);
+
+    bitmap.close();
+
+    const blob = await new Promise(resolve=>{
+      outputCanvas.toBlob(resolve,"image/png");
+    });
 
     if(!blob){
-      throw new Error("Could not create the PNG file.");
+      throw new Error("PNG could not be created.");
     }
 
     if(resultUrl){
@@ -294,51 +360,29 @@ removeBtn.addEventListener("click",async()=>{
     }
 
     resultUrl = URL.createObjectURL(blob);
-
-    resultImage.src = resultUrl;
-    resultPreview.style.display = "block";
+    resultPreview.src = resultUrl;
 
     downloadBtn.disabled = false;
-
-    showStatus("Background removed successfully! Your PNG is ready.");
+    setStatus("Background removed. You can download your PNG.");
 
   }catch(error){
-
     console.error(error);
-
-    showStatus(
-      "Sorry, something went wrong: " +
-      (error.message || "Please try again.")
-    );
-
+    setStatus("Error: " + (error.message || "Something went wrong."));
   }finally{
-
-    if(inputUrl){
-      URL.revokeObjectURL(inputUrl);
-    }
-
-    removeBtn.disabled = !selectedFile;
-
+    removeBtn.disabled = false;
   }
-
 });
 
 downloadBtn.addEventListener("click",()=>{
-
   if(!resultUrl) return;
 
   const link = document.createElement("a");
-
   link.href = resultUrl;
   link.download = "world-watcher-background-removed.png";
-
   document.body.appendChild(link);
   link.click();
   link.remove();
-
 });
-
 </script>
-
 </body>
 </html>
