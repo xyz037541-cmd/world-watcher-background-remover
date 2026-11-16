@@ -132,11 +132,8 @@ Processing speed depends on your device.
 
 <script type="module">
 
-import {
-  AutoModel,
-  AutoProcessor,
-  RawImage
-} from "https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.7.2";
+import { pipeline, RawImage } from
+"https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.7.2";
 
 const fileInput = document.getElementById("fileInput");
 const removeBtn = document.getElementById("removeBtn");
@@ -146,15 +143,14 @@ const statusBox = document.getElementById("status");
 const preview = document.getElementById("preview");
 const resultImage = document.getElementById("resultImage");
 
+const modelName = "vlad-grig/birefnet-lite-512";
+
+let segmenter = null;
+let activeDevice = null;
 let selectedFile = null;
 let previewURL = null;
 let resultURL = null;
-let model = null;
-let processor = null;
 let isProcessing = false;
-let activeDevice = null;
-
-const modelName = "vlad-grig/birefnet-lite-512";
 
 
 // Upload image
@@ -170,7 +166,8 @@ fileInput.addEventListener("change", () => {
   }
 
   if (file.size > 10 * 1024 * 1024) {
-    statusBox.textContent = "Please choose an image under 10 MB.";
+    statusBox.textContent =
+      "Please choose an image under 10 MB.";
     fileInput.value = "";
     return;
   }
@@ -190,54 +187,65 @@ fileInput.addEventListener("change", () => {
   removeBtn.disabled = false;
 
   statusBox.textContent = "Image selected: " + file.name;
+
 });
 
 
-// Load model with automatic fallback
+// Load AI model
 
-async function loadAIModel() {
+async function loadSegmenter() {
 
-  if (model && processor) return;
+  if (segmenter) return;
 
-  processor = await AutoProcessor.from_pretrained(modelName);
+  const options = {
+    dtype: "fp32"
+  };
 
-  // Try WebGPU with FP32 first
+  // Try WebGPU first
 
   if (navigator.gpu) {
 
     try {
 
       statusBox.textContent =
-        "Trying WebGPU with FP32. Please wait...";
+        "Loading AI model with WebGPU FP32...";
 
-      model = await AutoModel.from_pretrained(modelName, {
-        dtype: "fp32",
-        device: "webgpu"
-      });
+      segmenter = await pipeline(
+        "image-segmentation",
+        modelName,
+        {
+          ...options,
+          device: "webgpu"
+        }
+      );
 
       activeDevice = "WebGPU";
-
       return;
 
-    } catch (webgpuError) {
+    } catch (error) {
 
-      console.warn("WebGPU unavailable. Trying CPU instead.", webgpuError);
+      console.warn("WebGPU failed. Trying CPU/WASM.", error);
+      segmenter = null;
 
-      model = null;
     }
   }
 
-  // Fallback to CPU/WASM with FP32
+  // CPU/WASM fallback
 
   statusBox.textContent =
-    "Using CPU mode. Processing may take longer. Please wait...";
+    "Loading AI model in CPU mode. This may take longer...";
 
-  model = await AutoModel.from_pretrained(modelName, {
-    dtype: "fp32",
-    device: "wasm"
-  });
+  segmenter = await pipeline(
+    "image-segmentation",
+    modelName,
+    {
+      ...options,
+      device: "wasm"
+    }
+  );
 
   activeDevice = "CPU";
+
 }
 
 
@@ -257,33 +265,40 @@ removeBtn.addEventListener("click", async () => {
   try {
 
     statusBox.textContent =
-      "Loading AI model. The first download may take some time...";
+      "Loading AI model. First download may take some time...";
 
-    await loadAIModel();
+    await loadSegmenter();
 
-    statusBox.textContent = "Preparing your image...";
+    statusBox.textContent =
+      "AI is analysing your image...";
 
     const image = await RawImage.read(selectedFile);
 
     const originalWidth = image.width;
     const originalHeight = image.height;
 
-    const { pixel_values } = await processor(image);
+    const output = await segmenter(image);
+
+    if (!output || !output.length || !output[0].mask) {
+      throw new Error(
+        "The AI did not return an image mask. Please try another image."
+      );
+    }
+
+    const mask = output[0].mask;
+
+    const maskWidth = mask.width;
+    const maskHeight = mask.height;
+    const maskValues = mask.data;
+
+    if (!maskValues || !maskWidth || !maskHeight) {
+      throw new Error("The AI returned an empty mask.");
+    }
 
     statusBox.textContent =
-      "Removing background using " + activeDevice + "...";
+      "Applying transparent background...";
 
-    const output = await model({
-      input_image: pixel_values
-    });
-
-    const logits = output.logits;
-
-    const maskWidth = logits.dims[3];
-    const maskHeight = logits.dims[2];
-    const values = logits.data;
-
-    // Create alpha mask
+    // Create resized alpha mask
 
     const maskCanvas = document.createElement("canvas");
     maskCanvas.width = maskWidth;
@@ -296,32 +311,27 @@ removeBtn.addEventListener("click", async () => {
       maskHeight
     );
 
+    const channels = maskValues.length /
+      (maskWidth * maskHeight);
+
     for (let i = 0; i < maskWidth * maskHeight; i++) {
 
-      const probability =
-        1 / (1 + Math.exp(-values[i]));
+      let alpha = maskValues[Math.floor(i * channels)];
 
-      const lower = 0.15;
-      const upper = 0.65;
+      // Keep the mask's original grayscale values
 
-      let t = (probability - lower) / (upper - lower);
-      t = Math.max(0, Math.min(1, t));
+      alpha = Math.max(0, Math.min(255, alpha));
 
-      const smooth = t * t * (3 - 2 * t);
-      const alpha = Math.round(smooth * 255);
+      const p = i * 4;
 
-      const pixel = i * 4;
+      maskImageData.data[p] = 255;
+      maskImageData.data[p + 1] = 255;
+      maskImageData.data[p + 2] = 255;
+      maskImageData.data[p + 3] = alpha;
 
-      maskImageData.data[pixel] = 255;
-      maskImageData.data[pixel + 1] = 255;
-      maskImageData.data[pixel + 2] = 255;
-      maskImageData.data[pixel + 3] = alpha;
     }
 
     maskContext.putImageData(maskImageData, 0, 0);
-
-
-    // Resize mask
 
     const finalMask = document.createElement("canvas");
     finalMask.width = originalWidth;
@@ -341,7 +351,7 @@ removeBtn.addEventListener("click", async () => {
     );
 
 
-    // Load original photo
+    // Load original image
 
     originalURL = URL.createObjectURL(selectedFile);
 
@@ -354,7 +364,7 @@ removeBtn.addEventListener("click", async () => {
     });
 
 
-    // Preserve original colours
+    // Preserve original RGB colours
 
     const finalCanvas = document.createElement("canvas");
     finalCanvas.width = originalWidth;
@@ -380,12 +390,13 @@ removeBtn.addEventListener("click", async () => {
       0, 0, originalWidth, originalHeight
     );
 
-    // Change alpha only, never change RGB colours
+    // Change alpha only. Original colours stay untouched.
 
     for (let i = 0; i < imageData.data.length; i += 4) {
 
       imageData.data[i + 3] = Math.round(
-        imageData.data[i + 3] * maskData.data[i + 3] / 255
+        imageData.data[i + 3] *
+        maskData.data[i + 3] / 255
       );
 
     }
@@ -393,7 +404,7 @@ removeBtn.addEventListener("click", async () => {
     finalContext.putImageData(imageData, 0, 0);
 
 
-    // Export PNG
+    // Export transparent PNG
 
     const blob = await new Promise(resolve => {
       finalCanvas.toBlob(resolve, "image/png");
@@ -412,7 +423,8 @@ removeBtn.addEventListener("click", async () => {
     downloadBtn.disabled = false;
 
     statusBox.textContent =
-      "Background removed successfully! (" + activeDevice + " mode)";
+      "Background removed successfully! (" +
+      activeDevice + " mode)";
 
   } catch (error) {
 
@@ -422,7 +434,7 @@ removeBtn.addEventListener("click", async () => {
       "Sorry, something went wrong: " +
       (error.message || "Please try again.");
 
-    model = null;
+    segmenter = null;
     activeDevice = null;
 
   } finally {
@@ -432,6 +444,7 @@ removeBtn.addEventListener("click", async () => {
     isProcessing = false;
     fileInput.disabled = false;
     removeBtn.disabled = !selectedFile;
+
   }
 
 });
@@ -469,7 +482,8 @@ resetBtn.addEventListener("click", () => {
   preview.style.display = "none";
   resultImage.removeAttribute("src");
 
-  statusBox.textContent = "Choose an image to get started.";
+  statusBox.textContent =
+    "Choose an image to get started.";
 
   if (previewURL) {
     URL.revokeObjectURL(previewURL);
