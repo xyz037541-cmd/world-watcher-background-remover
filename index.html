@@ -10,20 +10,17 @@
 
 <style>
 *{box-sizing:border-box}
-
 body{
   margin:0;
   font-family:Arial,sans-serif;
   background:#f4f7f6;
   color:#25332f;
 }
-
 .container{
   max-width:850px;
   margin:35px auto;
   padding:25px;
 }
-
 .card{
   background:white;
   padding:30px;
@@ -31,14 +28,8 @@ body{
   box-shadow:0 4px 22px #0000000c;
   text-align:center;
 }
-
 h1{color:#187653;margin:0 0 10px}
-
-.subtitle{
-  color:#68756f;
-  line-height:1.6;
-}
-
+.subtitle{color:#68756f;line-height:1.6}
 .upload-area{
   display:block;
   border:2px dashed #8bbba5;
@@ -48,16 +39,10 @@ h1{color:#187653;margin:0 0 10px}
   cursor:pointer;
   margin:25px 0;
 }
-
 .upload-area:hover{background:#edf7f0}
 .upload-area input{display:none}
 .upload-icon{font-size:42px}
-
-.upload-area p{
-  margin:10px 0;
-  color:#456354;
-}
-
+.upload-area p{margin:10px 0;color:#456354}
 button{
   border:0;
   border-radius:8px;
@@ -68,21 +53,14 @@ button{
   font-size:15px;
   cursor:pointer;
 }
-
-button:disabled{
-  opacity:.5;
-  cursor:not-allowed;
-}
-
+button:disabled{opacity:.5;cursor:not-allowed}
 .secondary{background:#53645c}
-
 #status{
   margin:18px 0;
   color:#187653;
   line-height:1.5;
   overflow-wrap:anywhere;
 }
-
 .preview{
   display:none;
   margin:20px auto;
@@ -99,14 +77,12 @@ button:disabled{
   background-size:20px 20px;
   background-position:0 0,0 10px,10px -10px,-10px 0;
 }
-
 .preview img{
   display:block;
   max-width:100%;
   height:auto;
   margin:auto;
 }
-
 .note{
   font-size:13px;
   color:#75817b;
@@ -117,7 +93,6 @@ button:disabled{
 </head>
 
 <body>
-
 <div class="container">
 <div class="card">
 
@@ -131,24 +106,15 @@ Remove the background from your photos and download a transparent PNG.
 <label class="upload-area" for="fileInput">
 <input type="file" id="fileInput"
 accept="image/jpeg,image/png,image/webp">
-
 <div class="upload-icon">📷</div>
 <p><strong>Upload Your Image</strong></p>
 <p>Click here to choose a photo</p>
 <small>JPG, PNG or WEBP — maximum 10 MB</small>
 </label>
 
-<button id="removeBtn" disabled>
-Remove Background
-</button>
-
-<button id="downloadBtn" disabled>
-Download Transparent PNG
-</button>
-
-<button id="resetBtn" class="secondary">
-Choose Another Image
-</button>
+<button id="removeBtn" disabled>Remove Background</button>
+<button id="downloadBtn" disabled>Download Transparent PNG</button>
+<button id="resetBtn" class="secondary">Choose Another Image</button>
 
 <div id="status">Choose an image to get started.</div>
 
@@ -158,7 +124,7 @@ Choose Another Image
 
 <p class="note">
 Free browser-based AI processing. The AI model downloads the first time you use the tool.
-Best results may vary depending on the photo.
+Processing speed depends on your device.
 </p>
 
 </div>
@@ -183,10 +149,12 @@ const resultImage = document.getElementById("resultImage");
 let selectedFile = null;
 let previewURL = null;
 let resultURL = null;
-
 let model = null;
 let processor = null;
 let isProcessing = false;
+let activeDevice = null;
+
+const modelName = "vlad-grig/birefnet-lite-512";
 
 
 // Upload image
@@ -194,7 +162,6 @@ let isProcessing = false;
 fileInput.addEventListener("change", () => {
 
   const file = fileInput.files[0];
-
   if (!file) return;
 
   if (!file.type.startsWith("image/")) {
@@ -203,8 +170,7 @@ fileInput.addEventListener("change", () => {
   }
 
   if (file.size > 10 * 1024 * 1024) {
-    statusBox.textContent =
-      "Image is too large. Please choose an image under 10 MB.";
+    statusBox.textContent = "Please choose an image under 10 MB.";
     fileInput.value = "";
     return;
   }
@@ -215,7 +181,6 @@ fileInput.addEventListener("change", () => {
   if (resultURL) URL.revokeObjectURL(resultURL);
 
   resultURL = null;
-
   previewURL = URL.createObjectURL(file);
 
   resultImage.src = previewURL;
@@ -225,8 +190,55 @@ fileInput.addEventListener("change", () => {
   removeBtn.disabled = false;
 
   statusBox.textContent = "Image selected: " + file.name;
-
 });
+
+
+// Load model with automatic fallback
+
+async function loadAIModel() {
+
+  if (model && processor) return;
+
+  processor = await AutoProcessor.from_pretrained(modelName);
+
+  // Try WebGPU with FP32 first
+
+  if (navigator.gpu) {
+
+    try {
+
+      statusBox.textContent =
+        "Trying WebGPU with FP32. Please wait...";
+
+      model = await AutoModel.from_pretrained(modelName, {
+        dtype: "fp32",
+        device: "webgpu"
+      });
+
+      activeDevice = "WebGPU";
+
+      return;
+
+    } catch (webgpuError) {
+
+      console.warn("WebGPU unavailable. Trying CPU instead.", webgpuError);
+
+      model = null;
+    }
+  }
+
+  // Fallback to CPU/WASM with FP32
+
+  statusBox.textContent =
+    "Using CPU mode. Processing may take longer. Please wait...";
+
+  model = await AutoModel.from_pretrained(modelName, {
+    dtype: "fp32",
+    device: "wasm"
+  });
+
+  activeDevice = "CPU";
+}
 
 
 // Remove background
@@ -244,30 +256,10 @@ removeBtn.addEventListener("click", async () => {
 
   try {
 
-    if (!navigator.gpu) {
-      throw new Error(
-        "Your browser or graphics driver does not support WebGPU. Please use a compatible Chrome or Edge browser."
-      );
-    }
-
     statusBox.textContent =
-      "Loading AI model. First download is about 94 MB. Please wait...";
+      "Loading AI model. The first download may take some time...";
 
-    if (!model || !processor) {
-
-      model = await AutoModel.from_pretrained(
-        "vlad-grig/birefnet-lite-512",
-        {
-          dtype: "fp16",
-          device: "webgpu"
-        }
-      );
-
-      processor = await AutoProcessor.from_pretrained(
-        "vlad-grig/birefnet-lite-512"
-      );
-
-    }
+    await loadAIModel();
 
     statusBox.textContent = "Preparing your image...";
 
@@ -279,7 +271,7 @@ removeBtn.addEventListener("click", async () => {
     const { pixel_values } = await processor(image);
 
     statusBox.textContent =
-      "AI is removing the background. Please wait...";
+      "Removing background using " + activeDevice + "...";
 
     const output = await model({
       input_image: pixel_values
@@ -289,13 +281,11 @@ removeBtn.addEventListener("click", async () => {
 
     const maskWidth = logits.dims[3];
     const maskHeight = logits.dims[2];
-
     const values = logits.data;
 
-    // Create improved transparency mask
+    // Create alpha mask
 
     const maskCanvas = document.createElement("canvas");
-
     maskCanvas.width = maskWidth;
     maskCanvas.height = maskHeight;
 
@@ -311,19 +301,13 @@ removeBtn.addEventListener("click", async () => {
       const probability =
         1 / (1 + Math.exp(-values[i]));
 
-      // Improve foreground opacity while keeping soft edges
-
       const lower = 0.15;
       const upper = 0.65;
 
       let t = (probability - lower) / (upper - lower);
-
       t = Math.max(0, Math.min(1, t));
 
-      // Smooth transition between subject and background
-
       const smooth = t * t * (3 - 2 * t);
-
       const alpha = Math.round(smooth * 255);
 
       const pixel = i * 4;
@@ -332,16 +316,14 @@ removeBtn.addEventListener("click", async () => {
       maskImageData.data[pixel + 1] = 255;
       maskImageData.data[pixel + 2] = 255;
       maskImageData.data[pixel + 3] = alpha;
-
     }
 
     maskContext.putImageData(maskImageData, 0, 0);
 
 
-    // Resize mask to original image dimensions
+    // Resize mask
 
     const finalMask = document.createElement("canvas");
-
     finalMask.width = originalWidth;
     finalMask.height = originalHeight;
 
@@ -359,26 +341,22 @@ removeBtn.addEventListener("click", async () => {
     );
 
 
-    // Load original photo separately
+    // Load original photo
 
     originalURL = URL.createObjectURL(selectedFile);
 
     const originalImage = new Image();
 
     await new Promise((resolve, reject) => {
-
       originalImage.onload = resolve;
       originalImage.onerror = reject;
-
       originalImage.src = originalURL;
-
     });
 
 
-    // Draw original photo without changing its colours
+    // Preserve original colours
 
     const finalCanvas = document.createElement("canvas");
-
     finalCanvas.width = originalWidth;
     finalCanvas.height = originalHeight;
 
@@ -395,60 +373,46 @@ removeBtn.addEventListener("click", async () => {
     );
 
     const imageData = finalContext.getImageData(
-      0,
-      0,
-      originalWidth,
-      originalHeight
+      0, 0, originalWidth, originalHeight
     );
 
     const maskData = finalMaskContext.getImageData(
-      0,
-      0,
-      originalWidth,
-      originalHeight
+      0, 0, originalWidth, originalHeight
     );
 
-
-    // Change ONLY alpha.
-    // Original red, green and blue colour values remain untouched.
+    // Change alpha only, never change RGB colours
 
     for (let i = 0; i < imageData.data.length; i += 4) {
 
-      const originalAlpha = imageData.data[i + 3];
-      const maskAlpha = maskData.data[i + 3];
-
-      imageData.data[i + 3] =
-        Math.round(originalAlpha * maskAlpha / 255);
+      imageData.data[i + 3] = Math.round(
+        imageData.data[i + 3] * maskData.data[i + 3] / 255
+      );
 
     }
 
     finalContext.putImageData(imageData, 0, 0);
 
 
-    // Create transparent PNG
+    // Export PNG
 
     const blob = await new Promise(resolve => {
-
       finalCanvas.toBlob(resolve, "image/png");
-
     });
 
     if (!blob) {
-      throw new Error("Could not create the PNG image.");
+      throw new Error("Could not create PNG image.");
     }
 
     if (resultURL) URL.revokeObjectURL(resultURL);
 
     resultURL = URL.createObjectURL(blob);
-
     resultImage.src = resultURL;
 
     preview.style.display = "block";
-
     downloadBtn.disabled = false;
 
     statusBox.textContent =
-      "Background removed successfully! Download your PNG.";
+      "Background removed successfully! (" + activeDevice + " mode)";
 
   } catch (error) {
 
@@ -458,16 +422,16 @@ removeBtn.addEventListener("click", async () => {
       "Sorry, something went wrong: " +
       (error.message || "Please try again.");
 
+    model = null;
+    activeDevice = null;
+
   } finally {
 
-    if (originalURL) {
-      URL.revokeObjectURL(originalURL);
-    }
+    if (originalURL) URL.revokeObjectURL(originalURL);
 
     isProcessing = false;
     fileInput.disabled = false;
     removeBtn.disabled = !selectedFile;
-
   }
 
 });
@@ -480,7 +444,6 @@ downloadBtn.addEventListener("click", () => {
   if (!resultURL) return;
 
   const link = document.createElement("a");
-
   link.href = resultURL;
   link.download = "world-watcher-background-removed.png";
 
@@ -506,8 +469,7 @@ resetBtn.addEventListener("click", () => {
   preview.style.display = "none";
   resultImage.removeAttribute("src");
 
-  statusBox.textContent =
-    "Choose an image to get started.";
+  statusBox.textContent = "Choose an image to get started.";
 
   if (previewURL) {
     URL.revokeObjectURL(previewURL);
@@ -522,6 +484,5 @@ resetBtn.addEventListener("click", () => {
 });
 
 </script>
-
 </body>
 </html>
