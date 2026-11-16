@@ -4,654 +4,272 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
 <title>Free AI Background Remover | World Watcher</title>
-<meta name="description" content="Remove image backgrounds free with our browser-based AI background remover. Download high-quality transparent PNG images.">
+<meta name="description" content="Remove photo backgrounds free with our browser-based AI background remover. Download transparent PNG images.">
 
 <style>
-* {
-  box-sizing: border-box;
+*{box-sizing:border-box}
+body{
+  margin:0;
+  font-family:Arial,sans-serif;
+  background:#f4f7f6;
+  color:#25332f;
 }
-
-body {
-  margin: 0;
-  font-family: Arial, sans-serif;
-  background: #f4f6f8;
-  color: #252a31;
+.container{
+  max-width:850px;
+  margin:35px auto;
+  padding:25px;
 }
-
-header {
-  background: #20252d;
-  color: white;
-  text-align: center;
-  padding: 25px 15px;
+.card{
+  background:white;
+  padding:30px;
+  border-radius:16px;
+  box-shadow:0 4px 22px #0000000c;
+  text-align:center;
 }
-
-header h1 {
-  margin: 0;
-  font-size: 30px;
+h1{color:#187653;margin:0 0 10px}
+.subtitle{color:#68756f;line-height:1.6}
+.upload-area{
+  display:block;
+  border:2px dashed #8bbba5;
+  background:#f7fbf8;
+  padding:45px 15px;
+  border-radius:14px;
+  cursor:pointer;
+  margin:25px 0;
 }
-
-header p {
-  margin: 8px 0 0;
-  color: #c5cbd2;
-  font-size: 16px;
+.upload-area:hover{background:#edf7f0}
+.upload-area input{display:none}
+.upload-icon{font-size:42px}
+.upload-area p{margin:10px 0;color:#456354}
+button{
+  border:0;
+  border-radius:8px;
+  padding:13px 22px;
+  margin:7px;
+  background:#187653;
+  color:white;
+  font-size:15px;
+  cursor:pointer;
 }
-
-.container {
-  width: 92%;
-  max-width: 850px;
-  margin: 35px auto;
+button:disabled{opacity:.5;cursor:not-allowed}
+.secondary{background:#53645c}
+#status{
+  margin:18px 0;
+  color:#187653;
+  line-height:1.5;
+  overflow-wrap:anywhere;
 }
-
-.main-card {
-  background: white;
-  padding: 35px 25px;
-  border-radius: 14px;
-  box-shadow: 0 5px 25px rgba(0,0,0,0.07);
-  text-align: center;
-}
-
-.main-card h2 {
-  font-size: 27px;
-  margin: 0 0 12px;
-}
-
-.intro {
-  color: #626b75;
-  font-size: 16px;
-  line-height: 1.6;
-  margin-bottom: 30px;
-}
-
-.upload-area {
-  display: block;
-  border: 2px dashed #aab8bd;
-  border-radius: 12px;
-  padding: 35px 15px;
-  cursor: pointer;
-  background: #fbfcfc;
-  transition: 0.2s;
-}
-
-.upload-area:hover {
-  border-color: #4b827d;
-  background: #f2f8f7;
-}
-
-.upload-area:focus-within {
-  outline: 3px solid #a8cfca;
-}
-
-.camera {
-  width: 65px;
-  height: 65px;
-  margin: 0 auto 15px;
-  color: #414c57;
-}
-
-.upload-area h3 {
-  margin: 8px 0;
-  font-size: 23px;
-}
-
-.upload-area p {
-  color: #66717b;
-  margin: 8px 0;
-}
-
-.upload-link {
-  display: inline-block;
-  margin-top: 15px;
-  color: #397c75;
-  font-weight: bold;
-  font-size: 16px;
-}
-
-#fileInput {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  opacity: 0;
-  overflow: hidden;
-  pointer-events: none;
-}
-
-#selectedName {
-  margin-top: 15px;
-  color: #397c75;
-  font-size: 14px;
-  overflow-wrap: anywhere;
-}
-
-.action-btn {
-  border: none;
-  border-radius: 8px;
-  padding: 14px 25px;
-  font-size: 16px;
-  font-weight: bold;
-  cursor: pointer;
-  margin: 12px 5px 0;
-  transition: 0.2s;
-}
-
-.remove-btn {
-  background: #4b827d;
-  color: white;
-  width: 100%;
-  max-width: 280px;
-}
-
-.remove-btn:hover {
-  background: #386b66;
-}
-
-.remove-btn:disabled {
-  background: #a9b8b6;
-  cursor: not-allowed;
-}
-
-.status {
-  margin: 20px auto 0;
-  color: #397c75;
-  font-size: 15px;
-  line-height: 1.5;
-  min-height: 22px;
-}
-
-.progress-wrap {
-  display: none;
-  width: 100%;
-  max-width: 400px;
-  height: 9px;
-  background: #e5e9e9;
-  border-radius: 20px;
-  margin: 15px auto;
-  overflow: hidden;
-}
-
-.progress-bar {
-  height: 100%;
-  width: 0%;
-  background: #4b827d;
-  transition: width 0.25s;
-}
-
-.results {
-  display: none;
-  margin-top: 35px;
-}
-
-.results h2 {
-  margin-bottom: 20px;
-}
-
-.preview-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 18px;
-}
-
-.preview-box {
-  border: 1px solid #e0e5e7;
-  border-radius: 10px;
-  padding: 12px;
-  min-width: 0;
-}
-
-.preview-box h3 {
-  font-size: 16px;
-  margin: 5px 0 12px;
-}
-
-.preview-image {
-  width: 100%;
-  height: 260px;
-  object-fit: contain;
-  border-radius: 7px;
-  background-color: #f0f1f2;
-}
-
-.transparent-bg {
-  background-color: #fff;
+.preview{
+  display:none;
+  margin:20px auto;
+  max-width:100%;
+  border:1px solid #ddd;
+  border-radius:10px;
+  background-color:#eee;
   background-image:
-    linear-gradient(45deg, #e8e8e8 25%, transparent 25%),
-    linear-gradient(-45deg, #e8e8e8 25%, transparent 25%),
-    linear-gradient(45deg, transparent 75%, #e8e8e8 75%),
-    linear-gradient(-45deg, transparent 75%, #e8e8e8 75%);
-  background-size: 20px 20px;
-  background-position: 0 0, 0 10px, 10px -10px, -10px 0;
+    linear-gradient(45deg,#ddd 25%,transparent 25%),
+    linear-gradient(-45deg,#ddd 25%,transparent 25%),
+    linear-gradient(45deg,transparent 75%,#ddd 75%),
+    linear-gradient(-45deg,transparent 75%,#ddd 75%);
+  background-size:20px 20px;
+  background-position:0 0,0 10px,10px -10px,-10px 0;
 }
-
-.download-buttons {
-  margin-top: 22px;
-}
-
-.download-btn {
-  background: #20252d;
-  color: white;
-}
-
-.download-btn:hover {
-  background: #39434e;
-}
-
-.new-btn {
-  background: #e9eeee;
-  color: #303a40;
-}
-
-.new-btn:hover {
-  background: #dce5e4;
-}
-
-.note {
-  color: #78818a;
-  font-size: 13px;
-  line-height: 1.6;
-  margin-top: 25px;
-}
-
-@media (max-width: 600px) {
-  .container {
-    margin: 20px auto;
-  }
-
-  .main-card {
-    padding: 25px 15px;
-  }
-
-  header h1 {
-    font-size: 25px;
-  }
-
-  .main-card h2 {
-    font-size: 23px;
-  }
-
-  .preview-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .preview-image {
-    height: 240px;
-  }
-
-  .action-btn {
-    width: 100%;
-    margin: 7px 0;
-  }
-}
+.preview img{display:block;max-width:100%;height:auto;border-radius:10px}
+.note{font-size:13px;color:#75817b;line-height:1.6;margin-top:22px}
 </style>
 </head>
 
 <body>
-
-<header>
-  <h1>World Watcher</h1>
-  <p>Free AI Background Remover</p>
-</header>
-
 <div class="container">
-  <main class="main-card">
-
-    <h2>Remove Image Background</h2>
-
-    <p class="intro">
-      Upload your image and let AI remove its background.
-      Download your image as a transparent PNG.
+  <div class="card">
+    <h1>World Watcher</h1>
+    <h2>Free AI Background Remover</h2>
+    <p class="subtitle">
+      Remove the background from portrait photos and download a transparent PNG.
     </p>
 
-    <!-- Entire upload area is clickable -->
-    <label class="upload-area" for="fileInput" tabindex="0">
-
-      <svg class="camera" viewBox="0 0 64 64"
-           fill="none" xmlns="http://www.w3.org/2000/svg"
-           aria-hidden="true">
-        <path d="M8 19H20L25 12H40L45 19H56V52H8V19Z"
-              fill="currentColor"/>
-        <circle cx="32" cy="35" r="12"
-                stroke="white" stroke-width="3"/>
-        <circle cx="49" cy="25" r="2"
-                fill="white"/>
-      </svg>
-
-      <h3>Upload Your Image</h3>
-
-      <p>Choose JPG, PNG or WebP</p>
-      <p>Maximum file size: 10 MB</p>
-
-      <span class="upload-link">
-        Choose an image to get started
-      </span>
-
-      <input
-        type="file"
-        id="fileInput"
-        accept="image/jpeg,image/png,image/webp"
-      >
-
+    <label class="upload-area" for="fileInput">
+      <input type="file" id="fileInput" accept="image/jpeg,image/png,image/webp">
+      <div class="upload-icon">📷</div>
+      <p><strong>Upload Your Image</strong></p>
+      <p>Click here to choose a photo</p>
+      <small>JPG, PNG or WEBP — maximum 10 MB</small>
     </label>
 
-    <div id="selectedName"></div>
+    <button id="removeBtn" disabled>Remove Background</button>
+    <button id="downloadBtn" disabled>Download Transparent PNG</button>
+    <button id="resetBtn" class="secondary">Choose Another Image</button>
 
-    <button class="action-btn remove-btn"
-            id="removeBtn" disabled>
-      Remove Background
-    </button>
+    <div id="status">Choose a portrait photo to get started.</div>
 
-    <div class="progress-wrap" id="progressWrap">
-      <div class="progress-bar" id="progressBar"></div>
+    <div class="preview" id="preview">
+      <img id="resultImage" alt="Background removed image preview">
     </div>
 
-    <div class="status" id="status"></div>
-
-    <section class="results" id="results">
-
-      <h2>Your Result</h2>
-
-      <div class="preview-grid">
-
-        <div class="preview-box">
-          <h3>Original Image</h3>
-          <img id="originalPreview"
-               class="preview-image"
-               alt="Original uploaded image">
-        </div>
-
-        <div class="preview-box">
-          <h3>Background Removed</h3>
-          <img id="resultPreview"
-               class="preview-image transparent-bg"
-               alt="Image with background removed">
-        </div>
-
-      </div>
-
-      <div class="download-buttons">
-
-        <button class="action-btn download-btn"
-                id="downloadTransparent">
-          Download Transparent PNG
-        </button>
-
-        <button class="action-btn download-btn"
-                id="downloadWhite">
-          Download with White Background
-        </button>
-
-        <button class="action-btn new-btn"
-                id="newImageBtn">
-          Choose Another Image
-        </button>
-
-      </div>
-
-    </section>
-
     <p class="note">
-      Your image is processed in your browser.
-      It is not uploaded to our image-processing server.
-      The first use may take longer while the AI model loads.
+      Free browser-based processing. Your selected photo is processed on your device.
+      The AI model must download the first time you use the tool.
+      Best suited to photos of people.
     </p>
-
-  </main>
+  </div>
 </div>
 
 <script type="module">
+import { pipeline } from
+"https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.7.2";
 
 const fileInput = document.getElementById("fileInput");
 const removeBtn = document.getElementById("removeBtn");
-const statusText = document.getElementById("status");
-const selectedName = document.getElementById("selectedName");
-const progressWrap = document.getElementById("progressWrap");
-const progressBar = document.getElementById("progressBar");
-const results = document.getElementById("results");
-
-const originalPreview = document.getElementById("originalPreview");
-const resultPreview = document.getElementById("resultPreview");
-
-const downloadTransparent = document.getElementById("downloadTransparent");
-const downloadWhite = document.getElementById("downloadWhite");
-const newImageBtn = document.getElementById("newImageBtn");
+const downloadBtn = document.getElementById("downloadBtn");
+const resetBtn = document.getElementById("resetBtn");
+const statusBox = document.getElementById("status");
+const preview = document.getElementById("preview");
+const resultImage = document.getElementById("resultImage");
 
 let selectedFile = null;
-let resultBlob = null;
-let originalUrl = null;
-let resultUrl = null;
-let isProcessing = false;
-
-const MAX_FILE_SIZE = 10 * 1024 * 1024;
-
-function setStatus(message) {
-  statusText.textContent = message;
-}
-
-function resetProgress() {
-  progressBar.style.width = "0%";
-  progressWrap.style.display = "none";
-}
-
-function clearOldImages() {
-  if (originalUrl) URL.revokeObjectURL(originalUrl);
-  if (resultUrl) URL.revokeObjectURL(resultUrl);
-
-  originalUrl = null;
-  resultUrl = null;
-  resultBlob = null;
-}
+let resultURL = null;
+let remover = null;
 
 fileInput.addEventListener("change", () => {
-
   const file = fileInput.files[0];
-
   if (!file) return;
 
-  if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
-    setStatus("Please choose a JPG, PNG or WebP image.");
-    fileInput.value = "";
+  if (!file.type.startsWith("image/")) {
+    statusBox.textContent = "Please choose an image file.";
     return;
   }
 
-  if (file.size > MAX_FILE_SIZE) {
-    setStatus("Image size must be 10 MB or less.");
+  if (file.size > 10 * 1024 * 1024) {
+    statusBox.textContent = "Image is too large. Please choose an image under 10 MB.";
     fileInput.value = "";
     return;
   }
-
-  clearOldImages();
 
   selectedFile = file;
 
-  originalUrl = URL.createObjectURL(file);
+  if (resultURL) URL.revokeObjectURL(resultURL);
+  resultURL = null;
 
-  originalPreview.src = originalUrl;
-
-  selectedName.textContent = "Selected: " + file.name;
-
+  preview.style.display = "none";
+  downloadBtn.disabled = true;
   removeBtn.disabled = false;
-  results.style.display = "none";
 
-  resetProgress();
-
-  setStatus("Your image is ready. Click Remove Background.");
-
+  statusBox.textContent = "Image selected: " + file.name;
 });
 
 removeBtn.addEventListener("click", async () => {
+  if (!selectedFile) return;
 
-  if (!selectedFile || isProcessing) return;
-
-  isProcessing = true;
   removeBtn.disabled = true;
-
-  results.style.display = "none";
-  progressWrap.style.display = "block";
-  progressBar.style.width = "0%";
-
-  setStatus("Loading AI model. Please wait...");
+  downloadBtn.disabled = true;
 
   try {
+    statusBox.textContent =
+      "Loading AI model... First use may take some time. Please wait.";
 
-    const { removeBackground } = await import(
-      "https://esm.sh/@imgly/background-removal@1.7.0?bundle"
-    );
+    if (!remover) {
+      remover = await pipeline(
+        "background-removal",
+        "Xenova/modnet",
+        { dtype: "fp32" }
+      );
+    }
 
-    setStatus("Removing background. This may take a little time...");
+    statusBox.textContent = "Removing background... Please wait.";
 
-    resultBlob = await removeBackground(selectedFile, {
+    const imageURL = URL.createObjectURL(selectedFile);
+    const output = await remover(imageURL);
+    URL.revokeObjectURL(imageURL);
 
-      model: "medium",
+    const original = new Image();
+    const originalURL = URL.createObjectURL(selectedFile);
 
-      output: {
-        format: "image/png"
-      },
-
-      progress: (key, current, total) => {
-
-        if (total > 0) {
-          const percent = Math.min(
-            100,
-            Math.round((current / total) * 100)
-          );
-
-          progressBar.style.width = percent + "%";
-        }
-
-        if (key) {
-          setStatus("Processing: " + key);
-        }
-
-      }
-
+    await new Promise((resolve, reject) => {
+      original.onload = resolve;
+      original.onerror = reject;
+      original.src = originalURL;
     });
 
-    resultUrl = URL.createObjectURL(resultBlob);
+    const width = original.naturalWidth;
+    const height = original.naturalHeight;
 
-    resultPreview.src = resultUrl;
+    const maskCanvas = output[0].toCanvas();
+    const maskContext = maskCanvas.getContext("2d");
 
-    results.style.display = "block";
+    const resizedMask = document.createElement("canvas");
+    resizedMask.width = width;
+    resizedMask.height = height;
 
-    progressBar.style.width = "100%";
+    const resizedContext = resizedMask.getContext("2d");
+    resizedContext.drawImage(maskCanvas, 0, 0, width, height);
 
-    setStatus("Background removed successfully!");
+    const maskPixels = resizedContext.getImageData(0, 0, width, height);
 
-  } catch (error) {
+    const finalCanvas = document.createElement("canvas");
+    finalCanvas.width = width;
+    finalCanvas.height = height;
 
-    console.error(error);
+    const finalContext = finalCanvas.getContext("2d");
+    finalContext.drawImage(original, 0, 0, width, height);
 
-    setStatus(
-      "Something went wrong. Please check your internet connection and try again."
+    const imagePixels = finalContext.getImageData(0, 0, width, height);
+
+    for (let i = 0; i < maskPixels.data.length; i += 4) {
+      imagePixels.data[i + 3] = maskPixels.data[i];
+    }
+
+    finalContext.putImageData(imagePixels, 0, 0);
+
+    URL.revokeObjectURL(originalURL);
+
+    const blob = await new Promise(resolve =>
+      finalCanvas.toBlob(resolve, "image/png")
     );
 
-    resetProgress();
+    if (!blob) throw new Error("Could not create PNG image.");
 
-  } finally {
+    if (resultURL) URL.revokeObjectURL(resultURL);
+    resultURL = URL.createObjectURL(blob);
 
-    isProcessing = false;
-    removeBtn.disabled = !selectedFile;
+    resultImage.src = resultURL;
+    preview.style.display = "block";
+    downloadBtn.disabled = false;
 
-  }
-
-});
-
-downloadTransparent.addEventListener("click", () => {
-
-  if (!resultBlob) return;
-
-  const link = document.createElement("a");
-
-  link.href = resultUrl;
-  link.download = "world-watcher-background-removed.png";
-
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-
-});
-
-downloadWhite.addEventListener("click", async () => {
-
-  if (!resultBlob) return;
-
-  try {
-
-    const image = new Image();
-
-    image.src = resultUrl;
-
-    await image.decode();
-
-    const canvas = document.createElement("canvas");
-
-    canvas.width = image.naturalWidth;
-    canvas.height = image.naturalHeight;
-
-    const context = canvas.getContext("2d");
-
-    context.fillStyle = "#ffffff";
-    context.fillRect(0, 0, canvas.width, canvas.height);
-
-    context.drawImage(image, 0, 0);
-
-    canvas.toBlob((blob) => {
-
-      if (!blob) {
-        setStatus("Could not create the white background image.");
-        return;
-      }
-
-      const url = URL.createObjectURL(blob);
-
-      const link = document.createElement("a");
-
-      link.href = url;
-      link.download = "world-watcher-white-background.png";
-
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
-
-    }, "image/png");
+    statusBox.textContent = "Background removed successfully!";
 
   } catch (error) {
-
     console.error(error);
-    setStatus("Download failed. Please try again.");
-
+    statusBox.textContent =
+      "Sorry, processing failed. Please refresh the page and try again. Details: " +
+      (error.message || "Unknown error");
+  } finally {
+    removeBtn.disabled = !selectedFile;
   }
-
 });
 
-newImageBtn.addEventListener("click", () => {
+downloadBtn.addEventListener("click", () => {
+  if (!resultURL) return;
 
-  if (isProcessing) return;
+  const link = document.createElement("a");
+  link.href = resultURL;
+  link.download = "world-watcher-no-background.png";
+  link.click();
+});
 
-  clearOldImages();
-
+resetBtn.addEventListener("click", () => {
   selectedFile = null;
   fileInput.value = "";
-
-  originalPreview.removeAttribute("src");
-  resultPreview.removeAttribute("src");
-
-  selectedName.textContent = "";
-  results.style.display = "none";
-
   removeBtn.disabled = true;
+  downloadBtn.disabled = true;
+  preview.style.display = "none";
+  statusBox.textContent = "Choose a portrait photo to get started.";
 
-  resetProgress();
-
-  setStatus("Choose a new image to get started.");
-
-  // Open the same file picker
-  fileInput.click();
-
+  if (resultURL) {
+    URL.revokeObjectURL(resultURL);
+    resultURL = null;
+  }
 });
-
 </script>
-
 </body>
 </html>
