@@ -1,1 +1,322 @@
 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Free AI Background Remover | World Watcher</title>
+<meta name="description" content="Remove image backgrounds free with our browser-based AI background remover. Download transparent PNG images.">
+
+<style>
+*{box-sizing:border-box}
+body{
+  margin:0;
+  font-family:Arial,sans-serif;
+  background:#f4f7f5;
+  color:#202820;
+}
+header{
+  background:#173f32;
+  color:white;
+  text-align:center;
+  padding:25px 15px;
+}
+header h1{margin:0 0 8px;font-size:27px}
+header p{margin:0;color:#dcebe3}
+.container{
+  max-width:850px;
+  margin:35px auto;
+  padding:20px;
+}
+.card{
+  background:white;
+  padding:25px;
+  border-radius:15px;
+  box-shadow:0 4px 20px #0000000c;
+  text-align:center;
+}
+.upload{
+  border:2px dashed #8ca99a;
+  border-radius:12px;
+  padding:35px 15px;
+  cursor:pointer;
+  background:#f8fbf9;
+}
+.upload:hover{background:#eef6f0}
+.upload h2{margin:8px 0}
+button{
+  border:0;
+  padding:13px 22px;
+  border-radius:8px;
+  background:#246b4d;
+  color:white;
+  font-size:15px;
+  cursor:pointer;
+  margin:7px;
+}
+button:disabled{opacity:.5;cursor:not-allowed}
+.secondary{background:#344b40}
+#status{
+  margin:20px 0;
+  color:#246b4d;
+  font-weight:bold;
+}
+.progress{
+  width:100%;
+  height:9px;
+  background:#e5eee8;
+  border-radius:10px;
+  overflow:hidden;
+  margin:12px 0;
+}
+#bar{
+  width:0%;
+  height:100%;
+  background:#31966b;
+  transition:width .2s;
+}
+.preview{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:15px;
+  margin-top:25px;
+}
+.preview-box{
+  min-width:0;
+  padding:12px;
+  border:1px solid #e1e8e3;
+  border-radius:10px;
+}
+.preview-box img{
+  width:100%;
+  max-height:300px;
+  object-fit:contain;
+}
+.checker{
+  background-color:#fff;
+  background-image:
+  linear-gradient(45deg,#ddd 25%,transparent 25%),
+  linear-gradient(-45deg,#ddd 25%,transparent 25%),
+  linear-gradient(45deg,transparent 75%,#ddd 75%),
+  linear-gradient(-45deg,transparent 75%,#ddd 75%);
+  background-size:20px 20px;
+  background-position:0 0,0 10px,10px -10px,-10px 0;
+}
+#results{display:none}
+select{
+  padding:11px;
+  border:1px solid #ccc;
+  border-radius:7px;
+  margin:10px;
+}
+footer{
+  text-align:center;
+  padding:20px;
+  color:#66756c;
+  font-size:13px;
+}
+@media(max-width:550px){
+  .preview{grid-template-columns:1fr}
+  .container{padding:12px}
+  .card{padding:17px}
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>World Watcher</h1>
+  <p>Free AI Background Remover</p>
+</header>
+
+<div class="container">
+<div class="card">
+
+  <h2>Remove Image Background</h2>
+  <p>Upload your image and let AI remove its background.</p>
+
+  <label class="upload" for="imageInput">
+    <div style="font-size:40px">📷</div>
+    <h2>Upload Your Image</h2>
+    <p>Choose JPG, PNG or WebP</p>
+    <p><small>Maximum file size: 10 MB</small></p>
+  </label>
+
+  <input id="imageInput" type="file"
+    accept="image/jpeg,image/png,image/webp"
+    hidden>
+
+  <div id="status">Choose an image to get started.</div>
+
+  <div class="progress">
+    <div id="bar"></div>
+  </div>
+
+  <button id="removeBtn" disabled>Remove Background</button>
+
+  <div id="results">
+    <div class="preview">
+
+      <div class="preview-box">
+        <h3>Original Image</h3>
+        <img id="originalPreview" alt="Original image preview">
+      </div>
+
+      <div class="preview-box checker">
+        <h3>Background Removed</h3>
+        <img id="resultPreview" alt="Background removed image">
+      </div>
+
+    </div>
+
+    <div style="margin-top:20px">
+      <label for="backgroundChoice">Download background:</label>
+      <select id="backgroundChoice">
+        <option value="transparent">Transparent</option>
+        <option value="white">White</option>
+      </select>
+      <br>
+      <button id="downloadBtn">Download PNG</button>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<footer>
+  <p>Free Background Remover by World Watcher</p>
+  <p>Your selected image is processed in your browser.</p>
+</footer>
+
+<script type="module">
+
+const input = document.getElementById("imageInput");
+const removeBtn = document.getElementById("removeBtn");
+const downloadBtn = document.getElementById("downloadBtn");
+const statusBox = document.getElementById("status");
+const bar = document.getElementById("bar");
+const results = document.getElementById("results");
+
+let selectedFile = null;
+let resultBlob = null;
+let originalURL = null;
+let resultURL = null;
+
+input.addEventListener("change", () => {
+  const file = input.files[0];
+  if (!file) return;
+
+  if (!file.type.startsWith("image/")) {
+    statusBox.textContent = "Please select a valid image.";
+    return;
+  }
+
+  if (file.size > 10 * 1024 * 1024) {
+    statusBox.textContent = "Image must be smaller than 10 MB.";
+    input.value = "";
+    return;
+  }
+
+  selectedFile = file;
+
+  if (originalURL) URL.revokeObjectURL(originalURL);
+  if (resultURL) URL.revokeObjectURL(resultURL);
+
+  originalURL = URL.createObjectURL(file);
+  document.getElementById("originalPreview").src = originalURL;
+
+  resultBlob = null;
+  results.style.display = "none";
+  removeBtn.disabled = false;
+  bar.style.width = "0%";
+
+  statusBox.textContent = "Image selected. Ready to remove background.";
+});
+
+removeBtn.addEventListener("click", async () => {
+  if (!selectedFile) return;
+
+  removeBtn.disabled = true;
+  statusBox.textContent = "Loading AI model... Please wait.";
+  bar.style.width = "5%";
+
+  try {
+    const { removeBackground } = await import(
+      "https://esm.sh/@imgly/background-removal@1.7.0?bundle"
+    );
+
+    statusBox.textContent = "Processing image with AI...";
+
+    resultBlob = await removeBackground(selectedFile, {
+      model: "small",
+      output: {
+        format: "image/png",
+        quality: 1
+      },
+      progress: (key, current, total) => {
+        if (total > 0) {
+          const percent = Math.round((current / total) * 100);
+          bar.style.width = percent + "%";
+        }
+        statusBox.textContent = "AI: " + key;
+      }
+    });
+
+    if (resultURL) URL.revokeObjectURL(resultURL);
+
+    resultURL = URL.createObjectURL(resultBlob);
+    document.getElementById("resultPreview").src = resultURL;
+
+    results.style.display = "block";
+    bar.style.width = "100%";
+    statusBox.textContent = "Background removed successfully!";
+
+  } catch (error) {
+    console.error(error);
+    statusBox.textContent =
+      "Something went wrong. Please check your internet and try again.";
+  }
+
+  removeBtn.disabled = false;
+});
+
+downloadBtn.addEventListener("click", async () => {
+  if (!resultBlob) return;
+
+  const choice = document.getElementById("backgroundChoice").value;
+  let blobToDownload = resultBlob;
+
+  if (choice === "white") {
+    const image = new Image();
+    image.src = resultURL;
+    await image.decode();
+
+    const canvas = document.createElement("canvas");
+    canvas.width = image.naturalWidth;
+    canvas.height = image.naturalHeight;
+
+    const ctx = canvas.getContext("2d");
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(image, 0, 0);
+
+    blobToDownload = await new Promise(resolve =>
+      canvas.toBlob(resolve, "image/png")
+    );
+  }
+
+  const link = document.createElement("a");
+  const url = URL.createObjectURL(blobToDownload);
+
+  link.href = url;
+  link.download = "world-watcher-background-removed.png";
+  link.click();
+
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+});
+
+</script>
+</body>
+</html>
+
