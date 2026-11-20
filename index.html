@@ -9,91 +9,169 @@
 <meta name="description" content="Remove image backgrounds free with AI and download transparent PNG images.">
 
 <style>
-*{box-sizing:border-box}
-body{
-  margin:0;
-  padding:25px 15px;
-  font-family:Arial,sans-serif;
-  background:#f4f7f5;
-  color:#222;
+* {
+  box-sizing: border-box;
 }
-.container{
-  max-width:850px;
-  margin:auto;
-  padding:25px;
-  background:white;
-  border-radius:14px;
-  box-shadow:0 3px 18px rgba(0,0,0,.08);
+
+body {
+  margin: 0;
+  padding: 25px 15px;
+  font-family: Arial, sans-serif;
+  background: #f1f6fc;
+  color: #263445;
 }
-h1{text-align:center;color:#23734d}
-.intro{text-align:center;color:#666;line-height:1.6}
-.upload-area{
-  margin:25px 0;
-  padding:25px 15px;
-  text-align:center;
-  border:2px dashed #70a88b;
-  border-radius:10px;
-  background:#f8fcf9;
+
+.container {
+  max-width: 850px;
+  margin: auto;
+  padding: 25px;
+  background: #ffffff;
+  border: 1px solid #dce7f3;
+  border-radius: 14px;
+  box-shadow: 0 4px 18px rgba(7,55,99,0.08);
 }
-#fileInput{display:none}
-button{
-  padding:13px 22px;
-  margin:6px;
-  border:0;
-  border-radius:7px;
-  background:#287b50;
-  color:white;
-  font-size:15px;
-  cursor:pointer;
+
+h1 {
+  text-align: center;
+  color: #073763;
+  font-size: 28px;
+  margin: 5px 0 12px;
 }
-button:disabled{
-  background:#aaa;
-  cursor:not-allowed;
+
+.intro {
+  text-align: center;
+  color: #64748b;
+  line-height: 1.7;
+  margin-bottom: 25px;
 }
-.buttons{text-align:center}
-#status{
-  text-align:center;
-  margin:20px 0;
-  color:#287b50;
-  font-weight:bold;
-  line-height:1.5;
-  overflow-wrap:anywhere;
+
+.upload-area {
+  margin: 25px 0;
+  padding: 30px 15px;
+  text-align: center;
+  border: 2px dashed #8bb5d9;
+  border-radius: 12px;
+  background: #f5f9fe;
 }
-.preview{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:15px;
-  margin-top:20px;
+
+.upload-area strong {
+  color: #073763;
+  font-size: 17px;
 }
-.preview-box{
-  min-width:0;
-  padding:12px;
-  border:1px solid #ddd;
-  border-radius:10px;
-  text-align:center;
+
+#fileInput {
+  display: none;
 }
-.preview-box img{
-  display:block;
-  width:100%;
-  max-height:350px;
-  object-fit:contain;
-  background-color:#eee;
+
+button {
+  padding: 13px 22px;
+  margin: 6px;
+  border: none;
+  border-radius: 8px;
+  background: linear-gradient(135deg,#073763,#176b9b);
+  color: white;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+button:hover:not(:disabled) {
+  background: #0b5287;
+  transform: translateY(-1px);
+}
+
+button:disabled {
+  background: #a9b9ca;
+  cursor: not-allowed;
+}
+
+.buttons {
+  text-align: center;
+}
+
+#fileName {
+  color: #64748b;
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+
+#status {
+  text-align: center;
+  margin: 22px 0;
+  padding: 13px;
+  color: #073763;
+  background: #edf5fc;
+  border: 1px solid #d6e6f5;
+  border-radius: 8px;
+  font-weight: 600;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.preview {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+  margin-top: 20px;
+}
+
+.preview-box {
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid #dce7f3;
+  border-radius: 10px;
+  background: #ffffff;
+  text-align: center;
+}
+
+.preview-box h3 {
+  color: #073763;
+  font-size: 16px;
+  margin: 5px 0 15px;
+}
+
+.preview-box img {
+  display: block;
+  width: 100%;
+  max-height: 350px;
+  object-fit: contain;
+  background-color: #e6f1fb;
   background-image:
-    linear-gradient(45deg,#ccc 25%,transparent 25%),
-    linear-gradient(-45deg,#ccc 25%,transparent 25%),
-    linear-gradient(45deg,transparent 75%,#ccc 75%),
-    linear-gradient(-45deg,transparent 75%,#ccc 75%);
-  background-size:20px 20px;
-  background-position:0 0,0 10px,10px -10px,-10px 0;
+    linear-gradient(45deg,#cbd9e8 25%,transparent 25%),
+    linear-gradient(-45deg,#cbd9e8 25%,transparent 25%),
+    linear-gradient(45deg,transparent 75%,#cbd9e8 75%),
+    linear-gradient(-45deg,transparent 75%,#cbd9e8 75%);
+  background-size: 20px 20px;
+  background-position: 0 0,0 10px,10px -10px,-10px 0;
 }
-@media(max-width:600px){
-  .preview{grid-template-columns:1fr}
-  .container{padding:18px}
+
+@media(max-width:600px) {
+  body {
+    padding: 15px 10px;
+  }
+
+  .container {
+    padding: 18px 13px;
+  }
+
+  h1 {
+    font-size: 23px;
+  }
+
+  .preview {
+    grid-template-columns: 1fr;
+  }
+
+  button {
+    padding: 12px 17px;
+  }
 }
 </style>
 </head>
 
 <body>
+
 <div class="container">
 
 <h1>Free AI Background Remover</h1>
@@ -114,6 +192,7 @@ Remove image backgrounds with AI and download transparent PNG images.
   <button type="button" id="removeBtn" disabled>
     Remove Background
   </button>
+
   <button type="button" id="downloadBtn" disabled>
     Download PNG
   </button>
@@ -122,6 +201,7 @@ Remove image backgrounds with AI and download transparent PNG images.
 <div id="status">Please select an image to get started.</div>
 
 <div class="preview">
+
   <div class="preview-box">
     <h3>Original Image</h3>
     <img id="originalPreview" alt="Original image preview">
@@ -131,8 +211,8 @@ Remove image backgrounds with AI and download transparent PNG images.
     <h3>Background Removed</h3>
     <img id="resultPreview" alt="Background removed preview">
   </div>
-</div>
 
+</div>
 </div>
 
 <script type="module">
